@@ -102,3 +102,11 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# my settings
+.env/
+.vscode/
+**__pycache__**
+data/
+ge-models/
+**.txt
