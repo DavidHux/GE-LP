@@ -20,7 +20,7 @@ class IALGE():
     edge_strategy = None
     '''
 
-    def __init__(self, adj, fearure, labels, tao, n, s, gemodel='GCN', edge_Rec='MLE', trainsize=0.5, early_stop=5, seed=-1, dropout=0.5, deleted_edges=None):
+    def __init__(self, adj, fearure, labels, tao, n, s, gemodel='GCN', edge_Rec='MLE', trainsize=0.5, early_stop=10, seed=-1, dropout=0.5, deleted_edges=None, initadj=None, params=None):
         '''
         args:
             adj: init adj matrix, N*N
@@ -28,6 +28,7 @@ class IALGE():
             tao: iter times
             n: candidate patch size
             s: one patch size
+            params: (edgenumPit2add, cannumPit, knn, subsetnum) e2a, cand, knn, se
         '''
         self.adj = adj
         self.fearure = fearure
@@ -40,11 +41,21 @@ class IALGE():
         self.seed = seed
         self.deleted_edges = deleted_edges
         self.dropout = dropout
+        if params == None:
+            self.params = (20, 20, 20, 20, 5)
+        else:
+            self.params = params
+        
+        print('iterAddlinks: params:{} start'.format(self.params))
 
-        self.outfile = open('iteraddlinks_res.txt', 'w')
+        self.outfile = open('iteraddlinks_res{}.txt'.format(self.params), 'w')
 
         _N = self.adj.shape[0]
         self.split_train, self.split_val, self.split_unlabeled = Preprocess.splitdata(_N, self.labels)
+
+        if initadj !=  None:
+            e, p = self.test(initadj)
+            print('complete adj performance: {}'.format(p))
 
         if gemodel == None:
             self.gemodel = model_i()
@@ -61,6 +72,8 @@ class IALGE():
             self.edgeRecMethod = addEdges_random_test(self.fearure, self.labels, self.split_train, self.split_val, self.split_unlabeled, self.deleted_edges, self.seed)
         elif edge_Rec == 'MLE':
             self.edgeRecMethod = addEdges_MLE(self.fearure, self.labels, self.split_train, self.split_val, self.split_unlabeled)
+        elif edge_Rec == 'KNN':
+            self.edgeRecMethod = addEdges_KNN(self.fearure, self.labels, self.split_train, self.split_val, self.split_unlabeled, hyperp=self.params)
         else:
             print('ERR: wrong edge reconstruction class')
             exit(-1)
@@ -104,14 +117,14 @@ class IALGE():
             new_edges = self.edgeRecMethod.edgeReconstruction(A_, embd_)
             A_temp = copy.deepcopy(A_)
             for a, b in new_edges:
-                print('add edges: {}, {}'.format(a, b))
+                # print('add edges: {}, {}'.format(a, b))
                 A_temp[a, b] = 1
                 A_temp[b, a] = 1
             self.output('it: {} add edges, before: {}, after: {}, added: {}'.format(i, A_.nnz, A_temp.nnz, len(new_edges)))
             # self.gemodel.setAdj(A_temp)
             # self.gemodel.train()
             _, per_n = self.test(A_temp)
-            self.output('time: {}, it: {}, performance: {}'.format(time.asctime(time.localtime(time.time())), i, per_n), f=True)
+            self.output('time: {}, it: {}, performance: {}, init:{}, best:{}'.format(time.asctime(time.localtime(time.time())), i, per_n, init_performance, best_performance), f=True)
             if per_n < best_performance:
                 early_it += 1
                 if early_it >= self.early_stop:
