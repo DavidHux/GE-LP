@@ -27,11 +27,23 @@ class Sim():
 
         res = sorted(res)
         return res
-    
+
     def min_sq(vec1, vec2):
         assert(len(vec1) == len(vec2))
         res = sum(pow(vec1-vec2, 2))
         return res
+
+
+class edge2list():
+    def list(adj):
+        existedEdges = []
+        t = adj.nonzero()
+        rows = t[0]
+        cols = t[1]
+        for i in range(len(rows)):
+            existedEdges.append((rows[i], cols[i]))
+
+        return existedEdges
 
 
 class heap():
@@ -39,16 +51,15 @@ class heap():
         self.size = size
         self.element = element
         self.h = [element]*self.size
-    
+
     def push(self, a):
         if a < self.h[0]:
             return
 
         heapq.heapreplace(self.h, a)
-    
+
     def sortedlist(self):
         return sorted(self.h, reverse=True)
-
 
 
 class Preprocess():
@@ -63,8 +74,10 @@ class Preprocess():
             _z_obs
         '''
         _A_obs, _X_obs, _z_obs = utils.load_npz(filename)
+        print('adj.nnz before: {}'.format(_A_obs.nnz))
         _A_obs = _A_obs + _A_obs.T
         _A_obs[_A_obs > 1] = 1
+        print('adj.nnz after: {}'.format(_A_obs.nnz))
         _X_obs = _X_obs.astype('float32')
         if not llc:
             return _A_obs, _X_obs, _z_obs
@@ -78,11 +91,25 @@ class Preprocess():
         _z_obs = _z_obs[lcc]
         return _A_obs, _X_obs, _z_obs
 
-    def splitdata(_N, _z_obs_1):
-        seed = 15
-        unlabeled_share = 0.8
-        val_share = 0.1
-        train_share = 1 - unlabeled_share - val_share
+    def savedata(filename, adj, feature, label):
+        ''' save data as npz
+        '''
+        adj_indices = adj.indices
+        adj_indptr = adj.indptr
+        adj_data = adj.data
+        adj_shape = adj.shape
+
+        attr_data = feature.data
+        attr_indices = feature.indices
+        attr_indptr = feature.indptr
+        attr_shape = feature.shape
+
+        np.savez(filename, adj_indices=adj_indices,
+                 adj_indptr=adj_indptr, adj_data=adj_data, adj_shape=adj_shape, attr_data=attr_data, attr_indices=attr_indices, attr_indptr=attr_indptr, attr_shape=attr_shape, labels=label)
+
+    def splitdata(_N, _z_obs_1, seed=123, share=(0.1, 0.1)):
+        train_share, val_share = share
+        unlabeled_share = 1 - train_share - val_share
         np.random.seed(seed)
 
         split_train, split_val, split_unlabeled = utils.train_val_test_split_tabular(np.arange(_N),
@@ -95,12 +122,12 @@ class Preprocess():
 
 
 class spa():
-    def delete_edges(adj, k = 0.5, strat='random'):
+    def delete_edges(adj, k=0.5, strat='random'):
         ''' delete edges from a given graph
             args:
                 adj: adjacent matrix, sparse
-                k: delete size
-            
+                k: remained size
+
             returns:
                 new_adj: sparse
         '''
@@ -158,8 +185,7 @@ class Matplot():
         plt.ylabel('column')
         plt.legend()
         plt.show()
-        
-          
+
 
 # class Model():
 #     def subprocess_GCN(adj, fea, labels, sizes, split_t=None):
@@ -167,7 +193,7 @@ class Matplot():
 #             print('error params in utils.u.model.subprocess_GCN')
 #             exit(-1)
 #         sp_train, sp_val, sp_test = split_t
-        
+
 #     def new_gcn(n_An, _X_obs, _Z_obs, sizes, split_train, split_val, gpu_id=None):
 #         gcn = GCN.GCN(sizes, n_An, _X_obs, "gcn_orig", gpu_id=gpu_id)
 #         return gcn
@@ -177,7 +203,7 @@ class Matplot():
 #         gcn.train(split_train, split_val, _Z_obs)
 
 #         return gcn
-    
+
 #     def preds(g_model):
 #         logits = g_model.logits.eval(session=g_model.session)
 #         predictions = g_model.predictions.eval(session=g_model.session, feed_dict={g_model.node_ids: range(g_model.N)})
@@ -186,7 +212,6 @@ class Matplot():
 
 #     def logits(g_model):
 #         return g_model.logits.eval(session=g_model.session)
-
 
 if __name__ == "__main__":
     x1 = [20, 33, 51, 79, 101, 121, 132, 145, 162, 182,

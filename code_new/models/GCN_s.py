@@ -19,8 +19,8 @@ def sparse_dropout(x, keep_prob, noise_shape):
     pre_out = tf.sparse_retain(x, dropout_mask)
     return pre_out * (1./keep_prob)
 
-class GCN_n:
-    def __init__(self, sizes, An, X_obs, name="", with_relu=True, params_dict={'dropout': 0.5}, gpu_id=0,
+class GCN_s:
+    def __init__(self, sizes, An, X_obs, name="", with_relu=False, params_dict={'dropout': 0}, gpu_id=0,
                  seed=-1, pp=False):
         """
         Create a Graph Convolutional Network model in Tensorflow with one hidden layer.
@@ -63,6 +63,8 @@ class GCN_n:
 
         if An.format != "csr":
             An = An.tocsr()
+        
+        An2 = An.dot(An)
 
         with self.graph.as_default():
 
@@ -86,7 +88,7 @@ class GCN_n:
                 # bool placeholder to turn on dropout during training
                 self.training = tf.placeholder_with_default(False, shape=())
 
-                self.An = tf.SparseTensor(np.array(An.nonzero()).T, An[An.nonzero()].A1, An.shape)
+                self.An = tf.SparseTensor(np.array(An2.nonzero()).T, An2[An2.nonzero()].A1, An2.shape)
                 self.An = tf.cast(self.An, tf.float32)
                 self.X_sparse = tf.SparseTensor(np.array(X_obs.nonzero()).T, X_obs[X_obs.nonzero()].A1, X_obs.shape)
                 self.X_dropout = sparse_dropout(self.X_sparse, 1 - self.dropout,
@@ -96,27 +98,27 @@ class GCN_n:
                                       lambda: self.X_dropout,
                                       lambda: self.X_sparse) if self.dropout > 0. else self.X_sparse
 
-                self.W1 = slim.variable('W1', [self.D, sizes[0]], tf.float32, initializer=w_init(seed=self.wseed))
-                self.b1 = slim.variable('b1', dtype=tf.float32, initializer=tf.zeros(sizes[0]))
+                self.W1 = slim.variable('W1', [self.D, sizes[1]], tf.float32, initializer=w_init(seed=self.wseed))
+                self.b1 = slim.variable('b1', dtype=tf.float32, initializer=tf.zeros(sizes[1]))
 
-                self.h1 = spdot(self.An, spdot(self.X_comp, self.W1))
+                self.logits = spdot(self.An, spdot(self.X_comp, self.W1))
 
+                # if with_relu:
+                #     self.h1 = tf.nn.relu(self.h1 + self.b1)
+
+                # self.h1_dropout = tf.nn.dropout(self.h1, 1 - self.dropout)
+
+
+                # self.h1_comp = tf.cond(self.training,
+                #                        lambda: self.h1_dropout,
+                #                        lambda: self.h1) if self.dropout > 0. else self.h1
+
+                # self.W2 = slim.variable('W2', [sizes[0], sizes[1]], tf.float32, initializer=w_init(seed=self.wseed2))
+                # self.b2 = slim.variable('b2', dtype=tf.float32, initializer=tf.zeros(sizes[1]))
+
+                # self.logits = spdot(self.An, dot(self.h1_comp, self.W2))
                 if with_relu:
-                    self.h1 = tf.nn.relu(self.h1 + self.b1)
-
-                self.h1_dropout = tf.nn.dropout(self.h1, 1 - self.dropout)
-
-
-                self.h1_comp = tf.cond(self.training,
-                                       lambda: self.h1_dropout,
-                                       lambda: self.h1) if self.dropout > 0. else self.h1
-
-                self.W2 = slim.variable('W2', [sizes[0], sizes[1]], tf.float32, initializer=w_init(seed=self.wseed2))
-                self.b2 = slim.variable('b2', dtype=tf.float32, initializer=tf.zeros(sizes[1]))
-
-                self.logits = spdot(self.An, dot(self.h1_comp, self.W2))
-                if with_relu:
-                    self.logits += self.b2
+                    self.logits += self.b1
                 self.logits_gather = tf.gather(self.logits, self.node_ids)
 
                 self.predictions = tf.nn.softmax(self.logits_gather)
@@ -129,9 +131,10 @@ class GCN_n:
                 if with_relu:
                     self.loss += self.weight_decay * tf.add_n([tf.nn.l2_loss(v) for v in [self.W1, self.b1]])
 
-                var_l = [self.W1, self.W2]
-                if with_relu:
-                    var_l.extend([self.b1, self.b2])
+                # var_l = [self.W1, self.W2]
+                var_l = [self.W1]
+                # if with_relu:
+                #     var_l.extend([self.b1, self.b2])
                 self.train_op = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss,
                                                                                                   var_list=var_l)
 

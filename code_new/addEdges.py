@@ -483,25 +483,28 @@ class addEdges_KNN(addEdges):
     def edgeEvaNew(self, candidators, adj, edgenum=20):
         res = collections.defaultdict(list)
 
-        # n = adj.shape[0]
-        lencan = len(candidators)
-        modelnum = int(2 * self.candinum * self.knn * self.edgeevaltimes / self.poolnum / edgenum)
-        # print('modelnum', modelnum)
-        for i in range(modelnum):
-            addededge = []
-            tempadj = copy.deepcopy(adj)
-            for j in range(edgenum):
-                a, b = candidators[random.randint(0, lencan-1)]
-                tempadj[a, b] = 1
-                tempadj[b, a] = 1
-                addededge.append((a,b))
+        try:
+            # n = adj.shape[0]
+            lencan = len(candidators)
+            modelnum = int(2 * self.candinum * self.knn * self.edgeevaltimes / self.poolnum / edgenum)
+            # print('modelnum', modelnum)
+            for i in range(modelnum):
+                addededge = []
+                tempadj = copy.deepcopy(adj)
+                for j in range(edgenum):
+                    a, b = candidators[random.randint(0, lencan-1)]
+                    tempadj[a, b] = 1
+                    tempadj[b, a] = 1
+                    addededge.append((a,b))
 
-            g = gemodel_GCN(tempadj, self.features, self.labels, split_t=(self.split_train, self.split_val, self.split_unlabeled))
-            g.train()
-            p1 = g.performance()
-            
-            for e in addededge:
-                res[e].append(p1)
+                g = gemodel_GCN(tempadj, self.features, self.labels, split_t=(self.split_train, self.split_val, self.split_unlabeled))
+                g.train()
+                p1 = g.performance()
+                
+                for e in addededge:
+                    res[e].append(p1)
+        except BaseException as err:
+            print('raised exception edgeEvaNew: {}'.format(err))
 
         # print('edge: {} evaluated {} better score'.format(edge, res))
         # print('return eval res:{}'.format(res))
@@ -546,7 +549,7 @@ class addEdges_KNN(addEdges):
                 a, b = templistss[j][0]
                 tempadj[a, b] = 1
                 tempadj[b, a] = 1
-            e, p = Modeltest_GCN.subprocess_GCN(tempadj, self.features, self.labels, split_t=(self.split_train, self.split_val, self.split_unlabeled), seed=1, dropout=0)
+            _, p = Modeltest_GCN.subprocess_GCN(tempadj, self.features, self.labels, split_t=(self.split_train, self.split_val, self.split_unlabeled), seed=1, dropout=0)
             rtt.append(p)
             print('performance for test {}: {}'.format(i, p))
 
@@ -558,6 +561,8 @@ class addEdges_KNN(addEdges):
                 maa = i
         sslist_ = sorted(listss, key=lambda x: x[+1], reverse=True)
         sslist = [x[0] for x in sslist_[:100]]
+
+        # print(sslist)
 
         p=Pool(self.poolnum)
         res_subset = []
@@ -620,14 +625,18 @@ class addEdges_KNN(addEdges):
         final_res = []
 
         evalres = collections.defaultdict(list)
-        for x in res_eval:
-            d = x.get()
-            for y, v in d.items():
-                evalres[y].extend(v)
-
         s = 0
-        for k, v in evalres.items():
-            s += len(v)
+        try:
+            for x in res_eval:
+                d = x.get()
+                for y, v in d.items():
+                    evalres[y].extend(v)
+
+            for k, v in evalres.items():
+                s += len(v)
+        except BaseException as err:
+            print('raised exception evalres: {}'.format(err))
+
         print('items: {}, totol items: {}'.format(len(evalres), s))
 
         ressss = self.result(evalres, adj)

@@ -21,7 +21,7 @@ class model_i():
         # self.adj = newadj
 
     def setFeature(self, feature):
-        self.feature = feature
+        self.features = feature
 
     def setLabels(self, labels):
         self.labels = labels
@@ -31,14 +31,15 @@ class model_i():
         return 0
 
 
-from models.GCN_n import GCN
+from models.GCN_n import GCN_n
+from models.GCN_s import GCN_s
 from u import Preprocess, Eval
 
 class gemodel_GCN(model_i):
-    def __init__(self, Adj, features, labels, layersize=16, split_t=None, seed=-1, dropout=0.5):
+    def __init__(self, Adj, features, labels, layersize=16, split_t=None, seed=-1, dropout=0.5, sGCN=False):
         # print('GCN model init')
         self.Adj = Adj
-        self.feature = features
+        self.features = features
         self.labels = labels
 
         _N = Adj.shape[0]
@@ -48,6 +49,11 @@ class gemodel_GCN(model_i):
         self.seed = seed
         self.dropout = dropout
 
+        if sGCN:
+            self.GCN = GCN_s
+        else:
+            self.GCN = GCN_n
+
         if split_t == None:
             self.split_train, self.split_val, self.split_unlabeled = Preprocess.splitdata(_N, self.labels)
         else:
@@ -55,12 +61,12 @@ class gemodel_GCN(model_i):
             self.split_train, self.split_val, self.split_unlabeled = split_t
 
         adj = utils.preprocess_graph(self.Adj)
-        self.model = GCN(self.sizes, adj, self.feature, "gcn_orig", gpu_id=None, seed=self.seed, params_dict={'dropout': self.dropout})
+        self.model = self.GCN(self.sizes, adj, self.features, "gcn_orig", gpu_id=None, seed=self.seed, params_dict={'dropout': self.dropout})
 
     def setAdj(self, newadj):
         self.Adj = newadj
         adj_processed = utils.preprocess_graph(self.Adj)
-        self.model = GCN(self.sizes, adj_processed, self.feature, "gcn_orig", gpu_id=None, seed=self.seed, params_dict={'dropout': self.dropout})
+        self.model = self.GCN(self.sizes, adj_processed, self.features, "gcn_orig", gpu_id=None, seed=self.seed, params_dict={'dropout': self.dropout})
 
     def train(self):
         self.model.train(self.split_train, self.split_val, self._Z_obs, print_info=False)
@@ -79,6 +85,11 @@ class gemodel_GCN(model_i):
 
         print('err standard for performace')
 
+    def acu(self):
+        test_pred = self.model.predictions.eval(session=self.model.session, feed_dict={self.model.node_ids: self.split_unlabeled})
+        test_real = self.labels[self.split_unlabeled]
+        return Eval.acu(test_pred, test_real)
+
 
 from multiprocessing import Process, Pool
 class Modeltest_GCN():
@@ -89,7 +100,7 @@ class Modeltest_GCN():
     def f(adj, fea, labels, split_t=None, seed=-1, dropout=0.5):
         gcn = gemodel_GCN(adj, fea, labels, split_t=split_t, seed=seed, dropout=dropout)
         gcn.train()
-        return (gcn.getembeddings(), gcn.performance())
+        return (gcn.getembeddings(), gcn.acu())
 
     def subprocess_GCN(adj, fea, labels, split_t=None, seed=-1, dropout=0.5):
         if split_t == None:

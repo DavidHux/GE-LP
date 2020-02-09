@@ -5,7 +5,6 @@ import time
 
 from addEdges import *
 from gemodels import *
-from candidateFilter import getNextA
 from u import Preprocess
 
 ''' 迭代式边重构方法
@@ -20,7 +19,7 @@ class IALGE():
     edge_strategy = None
     '''
 
-    def __init__(self, adj, fearure, labels, tao, n, s, gemodel='GCN', edge_Rec='MLE', trainsize=0.5, early_stop=10, seed=-1, dropout=0.5, deleted_edges=None, initadj=None, params=None):
+    def __init__(self, adj, features, labels, tao, n, s, gemodel='GCN', edge_Rec='MLE', trainsize=0.5, early_stop=10, seed=-1, dropout=0.5, deleted_edges=None, initadj=None, params=None, dataset=('cora', 1), testindex=1):
         '''
         args:
             adj: init adj matrix, N*N
@@ -31,7 +30,7 @@ class IALGE():
             params: (edgenumPit2add, cannumPit, knn, subsetnum) e2a, cand, knn, se
         '''
         self.adj = adj
-        self.fearure = fearure
+        self.features = features
         self.tao = tao
         self.n = n
         self.s = s
@@ -48,19 +47,19 @@ class IALGE():
         
         print('iterAddlinks: params:{} start'.format(self.params))
 
-        self.outfile = open('iteraddlinks_res{}.txt'.format(self.params), 'w')
+        self.outfile = open('ial_res_{}_{}_{}_{}.txt'.format(dataset, edge_Rec, self.params, testindex), 'w')
 
         _N = self.adj.shape[0]
         self.split_train, self.split_val, self.split_unlabeled = Preprocess.splitdata(_N, self.labels)
 
         if initadj !=  None:
             e, p = self.test(initadj)
-            print('complete adj performance: {}'.format(p))
+            self.output('complete adj performance: {}'.format(p), f=True)
 
         if gemodel == None:
             self.gemodel = model_i()
         elif gemodel == 'GCN':
-            # self.gemodel = gemodel_GCN(self.adj, self.fearure, self.labels, seed=self.seed, dropout=0)
+            # self.gemodel = gemodel_GCN(self.adj, self.features, self.labels, seed=self.seed, dropout=0)
             self.gemodel = None
         else:
             print('ERR: wrong graph embedding class')
@@ -69,11 +68,11 @@ class IALGE():
         if edge_Rec == 'rand':
             self.edgeRecMethod = addEdges_random()
         elif edge_Rec == 'rand_test':
-            self.edgeRecMethod = addEdges_random_test(self.fearure, self.labels, self.split_train, self.split_val, self.split_unlabeled, self.deleted_edges, self.seed)
+            self.edgeRecMethod = addEdges_random_test(self.features, self.labels, self.split_train, self.split_val, self.split_unlabeled, self.deleted_edges, self.seed)
         elif edge_Rec == 'MLE':
-            self.edgeRecMethod = addEdges_MLE(self.fearure, self.labels, self.split_train, self.split_val, self.split_unlabeled)
+            self.edgeRecMethod = addEdges_MLE(self.features, self.labels, self.split_train, self.split_val, self.split_unlabeled)
         elif edge_Rec == 'KNN':
-            self.edgeRecMethod = addEdges_KNN(self.fearure, self.labels, self.split_train, self.split_val, self.split_unlabeled, hyperp=self.params)
+            self.edgeRecMethod = addEdges_KNN(self.features, self.labels, self.split_train, self.split_val, self.split_unlabeled, hyperp=self.params)
         else:
             print('ERR: wrong edge reconstruction class')
             exit(-1)
@@ -85,7 +84,7 @@ class IALGE():
             exit(0)
 
         self.gemodel = model
-        self.gemodel.setfeature(self.fearure)
+        self.gemodel.setfeature(self.features)
         self.gemodel.setAdj(self.adj)
 
     def setEdgeRec(self, edgeRec):
@@ -147,7 +146,7 @@ class IALGE():
         return A_
     
     def test(self, adj):
-        embds, per = Modeltest_GCN.subprocess_GCN(adj, self.fearure, self.labels, split_t=(self.split_train, self.split_val, self.split_unlabeled), seed=self.seed, dropout=self.dropout)
+        embds, per = Modeltest_GCN.subprocess_GCN(adj, self.features, self.labels, split_t=(self.split_train, self.split_val, self.split_unlabeled), seed=self.seed, dropout=self.dropout)
         return embds, per
         # for i in range(10):
         #     self.gemodel.setAdj(adj)
