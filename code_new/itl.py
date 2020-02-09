@@ -22,7 +22,7 @@ class IALGE():
     edge_strategy = None
     '''
 
-    def __init__(self, adj, features, labels, tao, n, s, gemodel='GCN', cangen='knn', edgeEval='max', edgeUpdate='easy', early_stop=10, seed=-1, dropout=0.5, deleted_edges=None, initadj=None, params=None, dataset=('cora', 1), testindex=1, split_share=(0.1, 0.1)):
+    def __init__(self, adj, features, labels, tao, n, s, gemodel='GCN', cangen='knn', edgeEval='max', edgeUpdate='easy', early_stop=20, seed=-1, dropout=0.5, deleted_edges=None, initadj=None, params=None, dataset=('cora', 1), testindex=1, split_share=(0.1, 0.1)):
         '''
         args:
             adj: init adj matrix, N*N

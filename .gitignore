@@ -108,5 +108,6 @@ venv.bak/
 .vscode/
 **__pycache__**
 ge-models/
-**.txt
 ial_res**
+res**
+out**

@@ -10,7 +10,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 dataset = 'cora'
 percent = 0.5
-share_cora = (0.052, 0.3693)
+share = (0.052, 0.3693)
 
 ps = [0.1, 0.25, 0.5, 0.75, 1]
 
@@ -27,8 +27,8 @@ if __name__ == "__main__":
     _A_obs, feas, labels = Preprocess.loaddata(
         'data/{}.npz'.format(dataset), llc=False)
     _A_prev = _A_obs
-    adj, remained, deleted = spa.delete_edges(_A_obs, k=percent)
-    print('preprocess, delete some edges, remaind edges num(bi): {}'.format(adj.nnz))
+    # adj, remained, deleted = spa.delete_edges(_A_obs, k=percent)
+    # print('preprocess, delete some edges, remaind edges num(bi): {}'.format(adj.nnz))
 
     # t = IALGE(adj, feas, labels, 100, 10, 10, edge_Rec='rand')
     # t = IALGE(adj, feas, labels, 100, 10, 10, seed=1, dropout=0)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
             hptemp = copy.deepcopy(hp)
             hptemp[index] = x
             for y in range(testtimes):
-                t = IALGE(adj, feas, labels, 100, 10, 10, seed=1, dropout=0, edge_Rec='KNN',
+                t = IALGE(adj, feas, labels, 200, 10, 10, seed=1, dropout=0, edge_Rec='KNN',
                           deleted_edges=deleted, gemodel=None, initadj=_A_prev, params=hptemp, dataset=ds, testindex=y)
                 # print('''\nstart...\n''')
                 t.run()
@@ -59,13 +59,13 @@ if __name__ == "__main__":
     #     # t.test(adj)
     #     t.run()
 
-    pp = (20, 20, 20, 20, 5)
+    pp = (20, 50, 50, 50, 10)
     ds = (dataset, percent)
-    t = IALGE(adj, feas, labels, 100, 10, 10, seed=1, dropout=0,
-              deleted_edges=deleted, initadj=_A_prev, params=pp, dataset=ds, split_share=share_cora)
-    # __init__(adj, features, labels, tao, n, s, gemodel='GCN', cangen='knn', edgeEval='max',
-    # edgeUpdate='easy', early_stop=10, seed=-1, dropout=0.5,
-    # deleted_edges=None, initadj=None, params=None, dataset=('cora', 1), testindex=1):
-
-    print('''\nstart...\n''')
-    t.run()
+    for i in range(3):
+        adj, remained, deleted = spa.delete_edges(_A_obs, k=percent)
+        print('preprocess, delete some edges, remaind edges num(bi): {}'.format(adj.nnz))
+        t = IALGE(adj, feas, labels, 100, 10, 10, seed=i+1, dropout=0,
+                deleted_edges=deleted, initadj=_A_prev, params=pp, dataset=ds, split_share=share)
+        
+        print('''\nstart...\n''')
+        t.run()
