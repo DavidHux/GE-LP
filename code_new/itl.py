@@ -144,8 +144,7 @@ class IALGE():
                 best_adj = new_adj
                 adde = addededgenum
                 early_it = 0
-
-            A_ = new_adj
+                A_ = new_adj
 
         self.output('final performace: {}, added {} edges'.format(best_performance, adde), f=True)
         return best_adj, best_performance
