@@ -87,7 +87,7 @@ class edgeEval_max(edgeEval):
                     tempadj[b, a] = 1
                     addededge.append((a,b))
 
-                g = gemodel_GCN(tempadj, self.features, self.labels, split_t=self.split_t, seed=self.seed, dropout=self.dropout)
+                g = gemodel_GCN(tempadj, self.features, self.labels, split_t=self.split_t) # , seed=self.seed, dropout=self.dropout)
                 g.train()
                 p1 = g.acu()
                 

@@ -85,4 +85,38 @@ class canGen_knn(canGen):
                 if count == self.knn:
                     break
 
-        return ret
+        return 
+
+if __name__ == "__main__":
+         
+    def test():
+        a = [[0.1, 0.1, 0.1, 0.1, 0.6],
+            [0.2, 0.2, 0.2, 0.2, 0.2],
+            [0.3, 0.3, 0.2, 0.1, 0.1],
+            [0.6, 0.1, 0.1, 0.1, 0.1],
+            [0.9, 0.025, 0.025, 0.025, 0.025],
+            [0.1, 0.1, 0.1, 0.1, 0.6]]
+        
+        embds = np.array(a)
+        e = (0, 4)
+
+        res1 = embds[e[0]].dot(embds.T)
+        res2 = embds[e[1]].dot(embds.T)
+
+        norm = np.linalg.norm(embds, axis=1)
+        res1 = [res1[i]/(norm[e[0]] * norm[i]) for i in range(len(res1)) ]
+        res2 = [res2[i]/(norm[e[1]] * norm[i]) for i in range(len(res2)) ]
+
+        index1 = [(e[0], i) for i in range(len(embds))]
+        index2 = [(e[1], i) for i in range(len(embds))]
+
+        t1 = list(zip(res1, index1))
+        t2 = list(zip(res2, index2))
+        # t1.extend(t2)
+
+        r1 = sorted(t1, key=lambda x:x[0], reverse=True)
+        r2 = sorted(t2, key=lambda x:x[0], reverse=True)
+
+        print(r1, r2)
+    
+    test()

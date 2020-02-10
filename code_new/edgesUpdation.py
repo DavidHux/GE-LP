@@ -35,7 +35,7 @@ class edgesUpdate_easy(edgesUpdate):
         # self.outf = outf
         self.scoreset = collections.defaultdict(float)
         self.it = 0
-        self.topfactor = 3
+        self.topfactor = 4
         self.poolnum = poolnum
         self.subSetEvalNum = subsetevalnum
 

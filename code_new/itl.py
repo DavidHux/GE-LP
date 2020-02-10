@@ -146,10 +146,21 @@ class IALGE():
                 early_it = 0
                 A_ = new_adj
 
-        self.output('final performace: {}, added {} edges'.format(best_performance, adde), f=True)
+        unlabeled_perf = self.final_result(best_adj)
+        self.output('final performace, test set {}, val set: {}, added {} edges'.format(unlabeled_perf, best_performance, adde), f=True)
         return best_adj, best_performance
         
     
     def test(self, adj):
         embds, per = Modeltest_GCN.subprocess_GCN(adj, self.features, self.labels, split_t=(self.split_train, self.split_val, self.split_unlabeled), seed=self.seed, dropout=self.dropout)
         return embds, per
+    
+    def final_result(self, adj):
+        res = []
+        for i in range(5):
+            gcn = gemodel_GCN(adj, self.features, self.labels, split_t=self.split_t)
+            gcn.train()
+            res.append(gcn.performance())
+        
+        print('final res: {}'.format(res))
+        return np.mean(res)

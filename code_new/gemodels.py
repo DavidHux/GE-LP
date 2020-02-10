@@ -78,7 +78,10 @@ class gemodel_GCN(model_i):
 
     def performance(self, standard='acu', prt=False):
         if standard == 'acu':
-            per = Eval.acu(self.getembeddings(), self.labels)
+            test_pred = self.model.predictions.eval(session=self.model.session, feed_dict={self.model.node_ids: self.split_unlabeled})
+            test_real = self.labels[self.split_unlabeled]
+            per = Eval.acu(test_pred, test_real)
+            # per = Eval.acu(self.getembeddings(), self.labels)
             if prt:
                 print('acu: {}'.format(per))
             return per
@@ -86,8 +89,8 @@ class gemodel_GCN(model_i):
         print('err standard for performace')
 
     def acu(self):
-        test_pred = self.model.predictions.eval(session=self.model.session, feed_dict={self.model.node_ids: self.split_unlabeled})
-        test_real = self.labels[self.split_unlabeled]
+        test_pred = self.model.predictions.eval(session=self.model.session, feed_dict={self.model.node_ids: self.split_val})
+        test_real = self.labels[self.split_val]
         return Eval.acu(test_pred, test_real)
 
 
