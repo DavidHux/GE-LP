@@ -47,7 +47,7 @@ class edgesUpdate_easy(edgesUpdate):
         embds, per = Modeltest_GCN.subprocess_GCN(adj, self.features, self.labels, split_t=(self.split_train, self.split_val, self.split_unlabeled), seed=self.seed, dropout=self.dropout)
         return embds, per
 
-    def update(self, newscoreset):
+    def update(self, newscoreset, prevadj):
         '''update adj matrix, add some good edges to form a new adj matrix, which will be used in new training round
         args:
             newscoreset: new learned edges: [((1, 2), 0.98), ((2,3), 0.97), ...]
@@ -77,7 +77,7 @@ class edgesUpdate_easy(edgesUpdate):
         # self.outf('it: {} update edges, from top {}, performance: {}, prev: {}'.format(self.it, self.currentAddNum, p, self.prevperformance))
         print('it: {} update edges, from top {}, performance: {}, prev: {}'.format(self.it, self.currentAddNum, p, self.prevperformance))
 
-        enset, per_n = self.evalSetRandom(lllist_sorted[:self.currentAddNum * self.topfactor])
+        enset, per_n = self.evalSetRandom(lllist_sorted[:self.currentAddNum + self.edgeaddnum * self.topfactor], prevadj)
         # assert(len(enset) == self.currentAddNum)
         print('added set len: {}, current add num {}'.format(len(enset), self.currentAddNum))
         # self.outf('it: {} update edges, subeval Performance: {}, topset performance: {}, best p: {}'.format(self.it, per_n, p, self.bestperformance))
@@ -102,7 +102,7 @@ class edgesUpdate_easy(edgesUpdate):
         return res_adj, res_p, res_num
 
     
-    def evalSetRandom(self, topscoreset):
+    def evalSetRandom(self, topscoreset, prevadj):
         '''eval random edge set from top score edges'''
         
         # sslist_ = sorted(listss, key=lambda x: x[+1], reverse=True)
@@ -127,9 +127,28 @@ class edgesUpdate_easy(edgesUpdate):
             edgesets_eval.append(a)
         
         eee = sorted(edgesets_eval, key=lambda x: x[1], reverse=True)
-        print(eee[0][1], eee[1][1], eee[2][1])
+        print('readd edges', eee[0][1], eee[1][1], eee[2][1])
 
-        return eee[0]
+        ''' add edges from current adj'''
+        p=Pool(self.poolnum)
+        res_subset2 = []
+        for i in range(self.subSetEvalNum):
+            r = p.apply_async(self.subseteval2, args=(sslist[:self.edgeaddnum * self.topfactor], prevadj))
+            res_subset2.append(r)
+
+        p.close()
+        p.join()
+
+        edgesets_eval2 = []
+        for x in res_subset2:
+            a = x.get()
+            edgesets_eval2.append(a)
+        
+        eee2 = sorted(edgesets_eval2, key=lambda x: x[1], reverse=True)
+        print('add edges to current adj', eee2[0][1], eee2[1][1], eee2[2][1])
+
+        res = eee[0] if eee[0][1] > eee2[0][1] else eee2[0]
+        return res
 
     def subseteval(self, topset):
         '''eval edge set performance, randomly and some edges from top set
@@ -138,6 +157,23 @@ class edgesUpdate_easy(edgesUpdate):
         tempadj = copy.deepcopy(self.initadj)
         eset = set()
         for i in range(self.currentAddNum):
+            ran = random.randint(0, len(topset)-1)
+            eset.add(topset[ran])
+            a, b = topset[ran]
+            tempadj[a, b] = 1
+            tempadj[b, a] = 1
+
+        g = gemodel_GCN(tempadj, self.features, self.labels, split_t=self.split_t, seed=self.seed, dropout=self.dropout)
+        g.train()
+        return (eset, g.acu())
+    
+    def subseteval2(self, topset, prevadj):
+        '''eval edge set performance, randomly and some edges from top set
+        '''
+        # print('topset len: {}'.format(len(topset)))
+        tempadj = copy.deepcopy(prevadj)
+        eset = set()
+        for i in range(self.edgeaddnum):
             ran = random.randint(0, len(topset)-1)
             eset.add(topset[ran])
             a, b = topset[ran]

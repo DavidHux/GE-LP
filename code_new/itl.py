@@ -3,7 +3,7 @@
 import copy
 import time
 
-from addEdges import *
+# from addEdges import *
 from candidateGenerate import *
 from edgeEval import *
 from edgesUpdation import *
@@ -129,7 +129,7 @@ class IALGE():
             embd_, _ = self.test(A_)
             cans = self.cangen.cans(A_, embd_)
             edges_p = self.edgeEval.eval(cans, A_)
-            new_adj, new_perf, addededgenum = self.edgeUpdate.update(edges_p)
+            new_adj, new_perf, addededgenum = self.edgeUpdate.update(edges_p, A_)
 
             self.output('time: {}, it: {}, performance: {}, init:{}, best:{}, added {} edges'.format(time.asctime(time.localtime(time.time())), i, new_perf, init_performance, best_performance, addededgenum), f=True)
 
