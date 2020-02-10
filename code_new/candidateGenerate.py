@@ -85,7 +85,7 @@ class canGen_knn(canGen):
                 if count == self.knn:
                     break
 
-        return 
+        return ret
 
 if __name__ == "__main__":
          
