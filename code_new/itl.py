@@ -162,9 +162,8 @@ class IALGE():
     def final_result(self, adj):
         res = []
         for i in range(5):
-            gcn = gemodel_GCN(adj, self.features, self.labels, split_t=self.split_t)
-            gcn.train()
-            res.append(gcn.performance())
+            perf = Modeltest_GCN.subprocess_GCN_perf(adj, self.features, self.labels, split_t=self.split_t)
+            res.append(perf)
         
         print('final res: {}'.format(res))
         return np.mean(res)

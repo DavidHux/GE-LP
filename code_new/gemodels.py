@@ -115,5 +115,20 @@ class Modeltest_GCN():
         res = r.get()
         return res
 
+    def f_perf(adj, fea, labels, split_t=None, seed=-1, dropout=0.5):
+        gcn = gemodel_GCN(adj, fea, labels, split_t=split_t, seed=seed, dropout=dropout)
+        gcn.train()
+        return gcn.performance()
+
+    def subprocess_GCN_perf(adj, fea, labels, split_t=None, seed=-1, dropout=0.5):
+        if split_t == None:
+            print('error params in utils.u.model.subprocess_GCN')
+        p = Pool()
+        r = p.apply_async(Modeltest_GCN.f_perf, args=(adj, fea, labels, split_t, seed, dropout))
+        p.close()
+        p.join()
+        res = r.get()
+        return res
+
 if __name__ == "__main__":
     gemodel_GCN(1,2,3)
