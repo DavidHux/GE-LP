@@ -77,7 +77,9 @@ class canGen_knn(canGen):
         ret = []
         for rrr in r:
             count = 0
-            for x in rrr:
+            for m in range(0, len(rrr), 20):
+                x = rrr[m]
+                # for x in rrr:
                 if x[1][0]==x[1][1] or x[1] in edgeex or (x[1][1], x[1][0]) in edgeex:
                     continue
                 ret.append(x[1])
