@@ -146,8 +146,12 @@ class IALGE():
                 early_it = 0
                 A_ = new_adj
 
+        init_un_perf = self.final_result(self.adj)
         unlabeled_perf = self.final_result(best_adj)
-        self.output('final performace, test set {}, val set: {}, added {} edges'.format(unlabeled_perf, best_performance, adde), f=True)
+        nnz_init = self.adj.nnz
+        nnz_final = best_adj.nnz
+        self.output('init performace, test set {}, val set: {}, init {} edges'.format(init_un_perf, init_performance, nnz_init), f=True)
+        self.output('final performace, test set {}, val set: {}, final {} edges, added {} edges'.format(unlabeled_perf, best_performance, nnz_final, (nnz_final-nnz_init)/2), f=True)
         return best_adj, best_performance
         
     
