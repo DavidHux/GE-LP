@@ -75,9 +75,11 @@ class edgesUpdate_easy(edgesUpdate):
         _, p = self.test(A_temp)
 
         # self.outf('it: {} update edges, from top {}, performance: {}, prev: {}'.format(self.it, self.currentAddNum, p, self.prevperformance))
+        print('current size: {}, init size: {}'.format(prevadj.nnz, self.initadj.nnz))
         print('it: {} update edges, from top {}, performance: {}, prev: {}'.format(self.it, self.currentAddNum, p, self.prevperformance))
 
-        enset, per_n = self.evalSetRandom(lllist_sorted[:self.currentAddNum + self.edgeaddnum * self.topfactor], prevadj)
+        eee, ty = self.evalSetRandom(lllist_sorted[:self.currentAddNum + self.edgeaddnum * self.topfactor], prevadj)
+        enset, per_n = eee
         # assert(len(enset) == self.currentAddNum)
         print('added set len: {}, current add num {}'.format(len(enset), self.currentAddNum))
         # self.outf('it: {} update edges, subeval Performance: {}, topset performance: {}, best p: {}'.format(self.it, per_n, p, self.bestperformance))
@@ -85,16 +87,24 @@ class edgesUpdate_easy(edgesUpdate):
 
         if per_n > p:
             res_p = per_n
-            res_adj = copy.deepcopy(self.initadj)
-            res_num = len(enset)
-            for a, b in enset:
-                res_adj[a, b] = 1
-                res_adj[b, a] = 1
+            if ty == 0:
+                res_adj = copy.deepcopy(self.initadj)
+                res_num = len(enset)
+                for a, b in enset:
+                    res_adj[a, b] = 1
+                    res_adj[b, a] = 1
+            else:
+                res_adj = copy.deepcopy(prevadj)
+                res_num = len(enset) + (prevadj.nnz-self.initadj.nnz)/2
+                for a, b in enset:
+                    res_adj[a, b] = 1
+                    res_adj[b, a] = 1
         else:
             res_p = p
             res_adj = A_temp
             res_num = self.currentAddNum
         
+        self.prevperformance = res_p
         if res_p > self.bestperformance:
             self.bestperformance = res_p
             self.currentAddNum += self.edgeaddnum
@@ -127,7 +137,7 @@ class edgesUpdate_easy(edgesUpdate):
             edgesets_eval.append(a)
         
         eee = sorted(edgesets_eval, key=lambda x: x[1], reverse=True)
-        print('readd edges', eee[0][1], eee[1][1], eee[2][1])
+        print('readd edges to init adj', eee[0][1], eee[1][1], eee[2][1])
 
         ''' add edges from current adj'''
         p=Pool(self.poolnum)
@@ -147,7 +157,7 @@ class edgesUpdate_easy(edgesUpdate):
         eee2 = sorted(edgesets_eval2, key=lambda x: x[1], reverse=True)
         print('add edges to current adj', eee2[0][1], eee2[1][1], eee2[2][1])
 
-        res = eee[0] if eee[0][1] > eee2[0][1] else eee2[0]
+        res = (eee[0], 0) if eee[0][1] > eee2[0][1] else (eee2[0], 1)
         return res
 
     def subseteval(self, topset):
