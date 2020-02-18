@@ -111,3 +111,10 @@ ge-models/
 ial_res**
 res**
 out**
+**.txt
+expres/
+code_new1/
+code/
+multi**
+**mac.py
+.DS_Store

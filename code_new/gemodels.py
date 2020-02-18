@@ -108,6 +108,7 @@ class Modeltest_GCN():
     def subprocess_GCN(adj, fea, labels, split_t=None, seed=-1, dropout=0.5):
         if split_t == None:
             print('error params in utils.u.model.subprocess_GCN')
+            exit(0)
         p = Pool()
         r = p.apply_async(Modeltest_GCN.f, args=(adj, fea, labels, split_t, seed, dropout))
         p.close()

@@ -6,6 +6,7 @@ import utils_nete as utils
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import precision_recall_fscore_support as score
 import scipy.sparse as sp
+import networkx as nx
 # from gemodels import gemodel_GCN
 
 
@@ -63,6 +64,27 @@ class heap():
 
 
 class Preprocess():
+    def loadtxt(filename, type='karate'):
+        with open('data/karate/karate_edges_77.txt') as edgesfile, open('data/karate/karate_groups.txt') as labelfile:
+            l = []
+            for line in labelfile:
+                s = line.strip().split('\t')
+                l.append(int(s[1]))
+            ll = np.zeros((len(l), max(l)))
+            for i in range(len(l)):
+                ll[i][l[i]-1] = 1
+
+            data = []
+            ea = []
+            eb = []
+            for line in edgesfile:
+                s = line.strip().split('\t')
+                ea.append(int(s[0]) - 1)
+                eb.append(int(s[1]) - 1)
+                data.append(1)
+
+            return sp.csr_matrix((data, (ea, eb)), shape=(len(l), len(l))), sp.csr_matrix(np.identity(len(l))), np.array(l)
+
     def loaddata(filename, llc=False):
         ''' load data using nettack api
         args:
@@ -185,7 +207,25 @@ class Matplot():
         plt.ylabel('column')
         plt.legend()
         plt.show()
+    
+class Netplot():
+    def plot(labels):
+        colorm = ['red', 'green', 'blue', 'yellow', 'purple', 'brown']
+        G = nx.karate_club_graph()
+        pos = []
+        with open('data/karate/karate_pos.txt') as file:
+            for line in file:
+                strs = line.strip().split(',')
+                pos.append((float(strs[0].strip()), float(strs[1].strip())))
+        colormap = []
+        for l in labels:
+            colormap.append(colorm[l-1])
+        
+        nx.draw(G, pos=pos, node_color=colormap, with_labels=True)
+        plt.show()
 
+        
+          
 
 # class Model():
 #     def subprocess_GCN(adj, fea, labels, sizes, split_t=None):
